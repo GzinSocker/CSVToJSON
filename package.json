@@ -4,6 +4,7 @@
   "description": "CSV to JSON parses application.",
   "main": "src/index.js",
   "scripts": {
+    "start": "node src/index.js"
   },
   "repository": {
     "type": "git",
@@ -19,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/GzinSocker/CSVToJSON/issues"
   },
-  "homepage": "https://github.com/GzinSocker/CSVToJSON#readme"
+  "homepage": "https://github.com/GzinSocker/CSVToJSON#readme",
+  "dependencies": {
+    "csv-parse": "^4.16.3",
+    "minimist": "^1.2.5"
+  }
 }
