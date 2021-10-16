@@ -1,0 +1,23 @@
+{
+  "name": "csvtojson",
+  "version": "1.0.0",
+  "description": "CSV to JSON parses application.",
+  "main": "src/index.js",
+  "scripts": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GzinSocker/CSVToJSON.git"
+  },
+  "keywords": [
+    "CSV",
+    "JSON",
+    "parser"
+  ],
+  "author": "Gabriel Castilho Mazzeu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GzinSocker/CSVToJSON/issues"
+  },
+  "homepage": "https://github.com/GzinSocker/CSVToJSON#readme"
+}
