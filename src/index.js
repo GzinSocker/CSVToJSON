@@ -6,6 +6,7 @@ const parse = require('csv-parse/lib/sync');
 
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 const PNF = require('google-libphonenumber').PhoneNumberFormat;
+const emailValidator = require("email-validator");
 
 /**
  * Verifies if a input file name was given via comand line. Otherwise, the default input file name 'input.csv' will be used.
@@ -58,7 +59,8 @@ function mergeRepeatedRegistries(registries) {
         registries.forEach(registry => {
             for(key in registry) {
                 if(key.indexOf('email') != -1 || key.indexOf('phone') != -1) {
-                    unifiedRegistry[key] = registry[key];
+                    if(!unifiedRegistry[key]) unifiedRegistry[key] = registry[key];
+                    else unifiedRegistry[key] =  unifiedRegistry[key]+'/'+registry[key];
                 }
             }
         });
@@ -145,40 +147,99 @@ async function formatGroupAttribute(registries) {
     }
 }
 
-function separateAndClearAddresses(registry) {
+function separateAndClearAddresses(address, type) {
     try {
+        // Separate
+        const separated =
+        type == 'phone' ? address.split(/[/,]/)
+                        : address.split(/[\s/,-]/);
+        address = [];
 
+        // Clear
+        separated.forEach((item) => {
+            if(item != '')
+                address.push(item.trim());
+        });
+
+        return address;
     } catch(err) {
         throw err;
     }
 }
 
 function validateAndFormatPhone(tags, content) {
-    const phoneAddress = {};
-    
-    const number = phoneUtil.parse(content, 'BR');
-    if(!phoneUtil.isValidNumberForRegion(number, 'BR'))
-        return -1;
-    
-    const splitedTags = tags.split(' ');
-    phoneAddress['type'] = splitedTags[0];
-    phoneAddress['tags'] = splitedTags.slice(1);
-    phoneAddress['address'] = phoneUtil.format(number, PNF.E164).slice(1);
+    try {
+        const phoneAddressArray = [];
+        let phoneAddress;
+        
+        content = separateAndClearAddresses(content, 'phone');
 
-    return phoneAddress;
+        let rawNumbers;
+        let number;
+        let splitedTags;
+        content.forEach((possiblePhone) => {
+            // Extracting just the numbers
+            rawNumbers = possiblePhone.replace(/\D/g, "");
+            if(rawNumbers != '') {
+                number = phoneUtil.parse(rawNumbers, 'BR');
+                if(phoneUtil.isPossibleNumber(number)) {
+                    // Clean old informations
+                    phoneAddress = {};
+
+                    // Fill phone address
+                    splitedTags = tags.split(' ');
+                    phoneAddress['type'] = splitedTags[0];
+                    phoneAddress['tags'] = splitedTags.slice(1);
+                    phoneAddress['address'] = phoneUtil.format(number, PNF.E164).slice(1);
+                    phoneAddressArray.push(phoneAddress);
+                }
+            }
+        })
+        return phoneAddressArray;
+    } catch(err) {
+        throw err;
+    }
+}
+
+function validateAndFormatEmail(tags, content) {
+    try {
+        const emailAddressArray = [];
+        let emailAddress;
+        
+        content = separateAndClearAddresses(content, 'email');
+
+        content.forEach( possibleEmail => {
+            if(emailValidator.validate(possibleEmail)) {
+                // Clean old informations
+                emailAddress = {};
+
+                // Fill email address
+                splitedTags = tags.split(' ');
+                emailAddress['type'] = splitedTags[0];
+                emailAddress['tags'] = splitedTags.slice(1);
+                emailAddress['address'] = possibleEmail;
+                emailAddressArray.push(emailAddress);
+            }
+        });
+
+        return emailAddressArray;
+    } catch(err) {
+        throw err;
+    }
 }
 
 function validateAndFormatAddresses(addresses) {
-    const formattedAddresses = [];
-
-    let temporaryFormattedAddress;
+    let formattedAddresses = [];
+    let formattedAddressArray;
     for (address in addresses) {
         if(addresses[address] != '') {
             if(address.indexOf('phone') != -1) {
-                temporaryFormattedAddress = validateAndFormatPhone(address, addresses[address]);
-                if(temporaryFormattedAddress != -1){
-                    formattedAddresses.push(temporaryFormattedAddress);  
-                }
+                formattedAddressArray = validateAndFormatPhone(address, addresses[address]);
+                formattedAddresses = formattedAddresses.concat(formattedAddressArray);
+            }
+            else if (address.indexOf('email') != -1) {
+                formattedAddressArray = validateAndFormatEmail(address, addresses[address]);
+                formattedAddresses = formattedAddresses.concat(formattedAddressArray);
             }
         }
     }
@@ -249,7 +310,7 @@ function writeOutput(data, fileName) {
  * Main function
  */
 (async function () {
-    // try {
+    try {
         const inputFile = await verifyInputEntry();
         
         const rawData = await readInput(inputFile);
@@ -266,7 +327,7 @@ function writeOutput(data, fileName) {
 
         writeOutput(visibilityFormated, 'output.json');
         
-    // } catch (err) {
-    //     console.error(`Something went wrong: ${err}`);
-    // }
+    } catch (err) {
+        console.error(`Something went wrong: ${err}`);
+    }
 })();
