@@ -1,9 +1,12 @@
+// Functionalty packages
 const argv = require('minimist')(process.argv.slice(2));
 const lodash = require('lodash');
 
+// File manipulation packages
 const fileSystem = require('fs').promises;
 const parse = require('csv-parse/lib/sync');
 
+// Addresses validation áckages
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 const PNF = require('google-libphonenumber').PhoneNumberFormat;
 const emailValidator = require("email-validator");
@@ -36,6 +39,11 @@ async function readInput(fileName) {
     }
 }
 
+/**
+ * Transform the string rawData into a Object.
+ * @param {string} rawData 
+ * @returns JS Object converted data.
+ */
 async function transformCSV(rawData) {
     try {
         const preFormatedData = parse(rawData, {
@@ -50,6 +58,11 @@ async function transformCSV(rawData) {
     }
 }
 
+/**
+ * Merge registries with the same id.
+ * @param {Array} registries 
+ * @returns A sigle object with the registries attributes merged.
+ */
 function mergeRepeatedRegistries(registries) {
     try {
         const unifiedRegistry = {};
@@ -83,7 +96,7 @@ function mergeRepeatedRegistries(registries) {
 }
 
 /**
- * 
+ * Transform the array to have unique registries based on the attribute *eid*.
  * @param {Array} registries 
  */
 async function removeRegistryDuplicates(registries) {
@@ -109,6 +122,11 @@ async function removeRegistryDuplicates(registries) {
     }
 }
 
+/**
+ * Validate and format the `groups` attribute.
+ * @param {Array} registries 
+ * @returns Registries with the `groups` attribute formatted.
+ */
 async function formatGroupAttribute(registries) {
     try {
         let formattedGroups;
@@ -147,6 +165,12 @@ async function formatGroupAttribute(registries) {
     }
 }
 
+/**
+ * Separate and clear bad formatted addresses.
+ * @param {string} address 
+ * @param {string} type 
+ * @returns Adresses array which addresses are separated and clean.
+ */
 function separateAndClearAddresses(address, type) {
     try {
         // Separate
@@ -167,6 +191,12 @@ function separateAndClearAddresses(address, type) {
     }
 }
 
+/**
+ * Validate, format and transform the Object structure of phone number.
+ * @param {string} tags 
+ * @param {string} content 
+ * @returns Object with the phone number formatted and ready to be indexed.
+ */
 function validateAndFormatPhone(tags, content) {
     try {
         const phoneAddressArray = [];
@@ -201,6 +231,12 @@ function validateAndFormatPhone(tags, content) {
     }
 }
 
+/**
+ * Validate, format and transform the Object structure of phone number.
+ * @param {string} tags 
+ * @param {string} content 
+ * @returns Object with the email formatted and ready to be indexed.
+ */
 function validateAndFormatEmail(tags, content) {
     try {
         const emailAddressArray = [];
@@ -228,6 +264,11 @@ function validateAndFormatEmail(tags, content) {
     }
 }
 
+/**
+ * Transform the `addresses` attribute structure to the output format needed.
+ * @param {Object} addresses 
+ * @returns Object with the right *addresses* structure.
+ */
 function validateAndFormatAddresses(addresses) {
     let formattedAddresses = [];
     let formattedAddressArray;
@@ -247,6 +288,11 @@ function validateAndFormatAddresses(addresses) {
     return formattedAddresses;
 }
 
+/**
+ * Build the `addresses` attribute.
+ * @param {Array} registries 
+ * @returns Registries array with the `addressess` attribute.
+ */
 async function formatAddressAttribute(registries) {
     try {
         let addresses;
@@ -272,6 +318,11 @@ async function formatAddressAttribute(registries) {
     }
 }
 
+/**
+ * Set the visibilities attributes with real boolean values.
+ * @param {Array} registries 
+ * @returns Registries array with visibilities attributes formatted.
+ */
 async function formatVisibilityAtributes(registries) {
     try {
         const trueList = ["true", "1", "yes"]
@@ -296,6 +347,11 @@ async function formatVisibilityAtributes(registries) {
     }
 }
 
+/**
+ * Write the `data` content into the `fileName` file. If `fileName` does not exist in *src* directory, it will be created.
+ * @param {Array} data 
+ * @param {string} fileName 
+ */
 function writeOutput(data, fileName) {
     try {
         const stringContent = JSON.stringify(data, null, 2);
