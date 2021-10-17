@@ -377,9 +377,9 @@ function writeOutput(data, fileName) {
 
         const groupFormatted = await formatGroupAttribute(uniqueRegistries);
 
-        const adressFormatted = await formatAddressAttribute(groupFormatted);
+        const addressFormatted = await formatAddressAttribute(groupFormatted);
 
-        const visibilityFormated = await formatVisibilityAtributes(adressFormatted)
+        const visibilityFormated = await formatVisibilityAtributes(addressFormatted)
 
         writeOutput(visibilityFormated, 'output.json');
         
