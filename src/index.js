@@ -1,7 +1,11 @@
-const fileSystem = require('fs').promises;
 const argv = require('minimist')(process.argv.slice(2));
-const parse = require('csv-parse/lib/sync');
 const lodash = require('lodash');
+
+const fileSystem = require('fs').promises;
+const parse = require('csv-parse/lib/sync');
+
+const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
+const PNF = require('google-libphonenumber').PhoneNumberFormat;
 
 /**
  * Verifies if a input file name was given via comand line. Otherwise, the default input file name 'input.csv' will be used.
@@ -31,53 +35,6 @@ async function readInput(fileName) {
     }
 }
 
-function removeDuplicateColumnsAndTransform(header, content) {
-    const columns = header.split(',');
-
-    const indexes = {};
-    columns.forEach((column, index) => {
-            if(!indexes[column])
-                indexes[column] = [];
-            indexes[column].push(index);
-    });
-    
-    const data = [];
-    let registry;
-    let personInfo;
-
-    content.forEach(line => {
-        registry = line.split(',');
-        console.log(registry);
-        personInfo = {...indexes};
-        for(index in indexes) {
-            personInfo[index] = '';
-            if(indexes[index].length > 1) {
-                indexes[index].forEach((value) => {
-                    if(registry[value])
-                        personInfo[index] = personInfo[index]+"/"+registry[value];
-                });
-            }
-            else {
-                personInfo[index] = registry[indexes[index][0]];
-            }
-        }
-        data.push(personInfo); 
-    });
-
-    return data;
-}
-
-async function removeDuplicatesAndConvert(data) {
-    const dataSplited = data.split('\n');
-
-    const header = dataSplited[0];
-    const content = dataSplited.slice(1);
-
-    const dataArray = removeDuplicateColumnsAndTransform(header, content);
-
-    return dataArray;
-}
-
 async function transformCSV(rawData) {
     try {
         const preFormatedData = parse(rawData, {
@@ -93,30 +50,34 @@ async function transformCSV(rawData) {
 }
 
 function mergeRepeatedRegistries(registries) {
-    const unifiedRegistry = {};
-
-    unifiedRegistry['fullname'] = registries[0]['fullname'];
-    unifiedRegistry['eid'] = registries[0]['eid'];
-    registries.forEach(registry => {
-        for(key in registry) {
-            if(key.indexOf('email') != -1 || key.indexOf('phone') != -1) {
-                unifiedRegistry[key] = registry[key];
+    try {
+        const unifiedRegistry = {};
+    
+        unifiedRegistry['fullname'] = registries[0]['fullname'];
+        unifiedRegistry['eid'] = registries[0]['eid'];
+        registries.forEach(registry => {
+            for(key in registry) {
+                if(key.indexOf('email') != -1 || key.indexOf('phone') != -1) {
+                    unifiedRegistry[key] = registry[key];
+                }
             }
-        }
-    });
-    unifiedRegistry['group'] = [];
-    registries.forEach(registry => {
-        for(key in registry) {
-            if(key == 'group') {
-                unifiedRegistry[key] = lodash.concat(unifiedRegistry['group'],  registry[key]);
+        });
+        unifiedRegistry['group'] = [];
+        registries.forEach(registry => {
+            for(key in registry) {
+                if(key == 'group') {
+                    unifiedRegistry[key] = lodash.concat(unifiedRegistry['group'],  registry[key]);
+                }
             }
-        }
-    });
-    unifiedRegistry['group'] = lodash.join(unifiedRegistry['group'], '/');
-    unifiedRegistry['invisible'] = registries[0]['invisible'];
-    unifiedRegistry['see_all'] = registries[0]['see_all'];
-
-    return unifiedRegistry
+        });
+        unifiedRegistry['group'] = lodash.join(unifiedRegistry['group'], '/');
+        unifiedRegistry['invisible'] = registries[0]['invisible'];
+        unifiedRegistry['see_all'] = registries[0]['see_all'];
+    
+        return unifiedRegistry
+    } catch (err) {
+        throw err;
+    }
 }
 
 /**
@@ -124,47 +85,154 @@ function mergeRepeatedRegistries(registries) {
  * @param {Array} registries 
  */
 async function removeRegistryDuplicates(registries) {
-
-    const organizedRegistries = lodash.groupBy(registries, "eid");
+    try {
+        const organizedRegistries = lodash.groupBy(registries, "eid");
+        
+        const uniqueRegistries = [];
+        for( registry in organizedRegistries ) {
     
-    const uniqueRegistries = [];
-    for( registry in organizedRegistries ) {
-        if(organizedRegistries[registry].length == 1) {
-            if(Array.isArray(organizedRegistries[registry][0]['group'])) {
-                organizedRegistries[registry][0]['group'] = lodash.join(organizedRegistries[registry][0]['group'], '/');
+            // Checks if that id has a single registry
+            if(organizedRegistries[registry].length == 1) {
+                uniqueRegistries.push(organizedRegistries[registry][0]);
             }
-            uniqueRegistries.push(organizedRegistries[registry][0]);
+            else {
+                // Unifies the duplicated registries.
+                uniqueRegistries.push(mergeRepeatedRegistries(organizedRegistries[registry]));
+            }
         }
-        else {
-            uniqueRegistries.push(mergeRepeatedRegistries(organizedRegistries[registry]));
-        }
+    
+        return uniqueRegistries;
+    } catch (err) {
+        throw err;
     }
-
-    return uniqueRegistries;
 }
 
 async function formatGroupAttribute(registries) {
+    try {
+        let formattedGroups;
+        registries.forEach((registry, index) => {
+            
+            // Stringfy group arrays
+            if(Array.isArray(registry['group'])) {
+                registry['group'] = lodash.join(registry['group'], '/');
+            }
     
-    let formattedGroups;
-    registries.forEach((registry, index) => {
-        formattedGroups = registry['group'].split(/[/,]/); // Cut group through a regex
-        registries[index]['group'] = [] // Clear the registry
-        formattedGroups.forEach((group) => { // Trim the splited strings
-            if(group != '')
-                 registries[index]['group'].push(group.trim());
+            // Transform string group into array through a regex
+            formattedGroups = registry['group'].split(/[/,]/);
+            
+            // Clear the registry
+            delete registries[index]['group']
+            registries[index]['groups'] = [];
+
+            // Trim the splited strings
+            formattedGroups.forEach((group) => {
+                if(group != '')
+                     registries[index]['groups'].push(group.trim());
+            });
+    
+            // Remove a repeated group
+            registries[index]['groups'] = registries[index]['groups'].filter((value, index, self) => {
+                return self.indexOf(value) == index;
+            })
+    
+            // Sort the groups
+            registries[index]['groups'].sort();
+        });
+        
+        return registries;
+    } catch(err) {
+        throw err;
+    }
+}
+
+function separateAndClearAddresses(registry) {
+    try {
+
+    } catch(err) {
+        throw err;
+    }
+}
+
+function validateAndFormatPhone(tags, content) {
+    const phoneAddress = {};
+    
+    const number = phoneUtil.parse(content, 'BR');
+    if(!phoneUtil.isValidNumberForRegion(number, 'BR'))
+        return -1;
+    
+    const splitedTags = tags.split(' ');
+    phoneAddress['type'] = splitedTags[0];
+    phoneAddress['tags'] = splitedTags.slice(1);
+    phoneAddress['address'] = phoneUtil.format(number, PNF.E164).slice(1);
+
+    return phoneAddress;
+}
+
+function validateAndFormatAddresses(addresses) {
+    const formattedAddresses = [];
+
+    let temporaryFormattedAddress;
+    for (address in addresses) {
+        if(addresses[address] != '') {
+            if(address.indexOf('phone') != -1) {
+                temporaryFormattedAddress = validateAndFormatPhone(address, addresses[address]);
+                if(temporaryFormattedAddress != -1){
+                    formattedAddresses.push(temporaryFormattedAddress);  
+                }
+            }
+        }
+    }
+
+    return formattedAddresses;
+}
+
+async function formatAddressAttribute(registries) {
+    try {
+        let addresses;
+        let formattedAddresses;
+        registries.forEach((registry, registryIndex) => {
+            addresses = {};
+            for(attributeIndex in registry) {
+                // Check if the attribute is an address
+                if(attributeIndex.indexOf('phone') != -1 || attributeIndex.indexOf('email') != -1) {
+                    addresses[attributeIndex] = registry[attributeIndex];
+                    // Clear the original registry information to be added later
+                    delete registries[registryIndex][attributeIndex];
+                }
+            };
+            formattedAddresses = validateAndFormatAddresses(addresses);
+
+            registries[registryIndex]['addresses'] = formattedAddresses;
         });
 
-        // Remove a repeated group
-        registries[index]['group'] = registries[index]['group'].filter((value, index, self) => {
-            return self.indexOf(value) == index;
-        })
+        return registries;
+    } catch(err) {
+        throw err;
+    }
+}
 
-        // Sort the groups
-        registries[index]['group'].sort();
-    });
-    
+async function formatVisibilityAtributes(registries) {
+    try {
+        const trueList = ["true", "1", "yes"]
 
-    return registries;
+        for(registryIndex in registries) {
+            // Checks invisible attribute
+            if(trueList.includes(registries[registryIndex]['invisible']))
+                registries[registryIndex]['invisible'] = true;
+            else
+                registries[registryIndex]['invisible'] = false;
+
+            //Check see_all attribute
+            if(trueList.includes(registries[registryIndex]['see_all']))
+                registries[registryIndex]['see_all'] = true;
+            else
+                registries[registryIndex]['see_all'] = false;
+        }
+
+        return registries;
+    } catch(err) {
+        throw err;
+    }
 }
 
 function writeOutput(data, fileName) {
@@ -172,7 +240,7 @@ function writeOutput(data, fileName) {
         const stringContent = JSON.stringify(data, null, 2);
     
         fileSystem.writeFile(`src/${fileName}`, stringContent, { encoding: 'utf-8' });
-    } catch (err) {
+    } catch(err) {
         throw err;
     }
 }
@@ -181,7 +249,7 @@ function writeOutput(data, fileName) {
  * Main function
  */
 (async function () {
-    try {
+    // try {
         const inputFile = await verifyInputEntry();
         
         const rawData = await readInput(inputFile);
@@ -190,11 +258,15 @@ function writeOutput(data, fileName) {
 
         const uniqueRegistries = await removeRegistryDuplicates(objects);
 
-        const preFormatedRegistries = await formatGroupAttribute(uniqueRegistries);
+        const groupFormatted = await formatGroupAttribute(uniqueRegistries);
 
-        writeOutput(preFormatedRegistries, 'output.json');
+        const adressFormatted = await formatAddressAttribute(groupFormatted);
+
+        const visibilityFormated = await formatVisibilityAtributes(adressFormatted)
+
+        writeOutput(visibilityFormated, 'output.json');
         
-    } catch (err) {
-        console.error(`Something went wrong: ${err}`);
-    }
+    // } catch (err) {
+    //     console.error(`Something went wrong: ${err}`);
+    // }
 })();

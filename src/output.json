@@ -2,68 +2,105 @@
   {
     "fullname": "John Appleseed",
     "eid": "104",
-    "email Student": "john.appleseed1@exemplo.com",
-    "phone Student": "(11) 99990-1235",
-    "email Pedagogical Responsible": "dad.appleseed1@exemplo.com/dad.appleseed2@exemplo.com",
-    "phone Pedagogical Responsible": "(11) 99991-1235",
-    "email Financial Responsible": "",
-    "phone Financial Responsible": "",
-    "group": [
+    "invisible": true,
+    "see_all": false,
+    "groups": [
       "Sala 1",
       "Sala 2",
       "Sala 3",
       "Sala 5",
       "Sala 6"
     ],
-    "invisible": "1",
-    "see_all": "no"
+    "addresses": [
+      {
+        "type": "phone",
+        "tags": [
+          "Student"
+        ],
+        "address": "5511999901235"
+      },
+      {
+        "type": "phone",
+        "tags": [
+          "Pedagogical",
+          "Responsible"
+        ],
+        "address": "5511999911235"
+      }
+    ]
   },
   {
     "fullname": "Mary Knight",
     "eid": "105",
-    "email Student": "mary.knight@exemplo.com",
-    "phone Student": "12 99990-1235",
-    "email Pedagogical Responsible": "dad.knight@exemplo.com",
-    "phone Pedagogical Responsible": "",
-    "email Financial Responsible": "mom.knight@exemplo.com",
-    "phone Financial Responsible": "",
-    "group": [
+    "invisible": false,
+    "see_all": false,
+    "groups": [
       "Sala 4",
       "Sala 5",
       "Sala 6"
     ],
-    "invisible": "no",
-    "see_all": ""
+    "addresses": [
+      {
+        "type": "phone",
+        "tags": [
+          "Student"
+        ],
+        "address": "5512999901235"
+      }
+    ]
   },
   {
     "fullname": "Jack Littleton",
     "eid": "106",
-    "email Student": "jack.littleton@exemplo.com",
-    "phone Student": "(13) 99990",
-    "email Pedagogical Responsible": "",
-    "phone Pedagogical Responsible": "(13) 99991-1236",
-    "email Financial Responsible": "mom.littleton@exemplo.com",
-    "phone Financial Responsible": "(13) 999921236",
-    "group": [
+    "invisible": false,
+    "see_all": false,
+    "groups": [
       "Sala 1"
     ],
-    "invisible": "",
-    "see_all": "0"
+    "addresses": [
+      {
+        "type": "phone",
+        "tags": [
+          "Pedagogical",
+          "Responsible"
+        ],
+        "address": "5513999911236"
+      },
+      {
+        "type": "phone",
+        "tags": [
+          "Financial",
+          "Responsible"
+        ],
+        "address": "5513999921236"
+      }
+    ]
   },
   {
     "fullname": "Kate Goldman",
     "eid": "107",
-    "email Student": "kate.goldman@exemplo.com",
-    "phone Student": "14999901237",
-    "email Pedagogical Responsible": "dad.goldman@exemplo.com",
-    "phone Pedagogical Responsible": "",
-    "email Financial Responsible": "mom.goldman@exemplo.com",
-    "phone Financial Responsible": "(14) 99992-1237",
-    "group": [
+    "invisible": false,
+    "see_all": true,
+    "groups": [
       "Sala 6",
       "Sala 7"
     ],
-    "invisible": "",
-    "see_all": "yes"
+    "addresses": [
+      {
+        "type": "phone",
+        "tags": [
+          "Student"
+        ],
+        "address": "5514999901237"
+      },
+      {
+        "type": "phone",
+        "tags": [
+          "Financial",
+          "Responsible"
+        ],
+        "address": "5514999921237"
+      }
+    ]
   }
 ]
